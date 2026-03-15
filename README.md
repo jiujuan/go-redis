@@ -1,2 +1,2 @@
-# hoya
+# go-redis
 [todo]
