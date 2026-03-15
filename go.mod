@@ -1,3 +1,3 @@
-module github.com/go-redis/go-redis
+module github.com/jiujuan/go-redis
 
 go 1.21

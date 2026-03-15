@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-redis/go-redis/internal/engine"
-	"github.com/go-redis/go-redis/internal/resp"
+	"github.com/jiujuan/go-redis/internal/engine"
+	"github.com/jiujuan/go-redis/internal/resp"
 )
 
 // cmdHandler 命令处理函数类型

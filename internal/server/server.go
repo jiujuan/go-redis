@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-redis/go-redis/config"
-	"github.com/go-redis/go-redis/internal/engine"
+	"github.com/jiujuan/go-redis/config"
+	"github.com/jiujuan/go-redis/internal/engine"
 )
 
 // Server TCP 服务端

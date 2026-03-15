@@ -12,9 +12,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/go-redis/go-redis/config"
-	"github.com/go-redis/go-redis/internal/engine"
-	"github.com/go-redis/go-redis/internal/server"
+	"github.com/jiujuan/go-redis/config"
+	"github.com/jiujuan/go-redis/internal/engine"
+	"github.com/jiujuan/go-redis/internal/server"
 )
 
 func main() {
