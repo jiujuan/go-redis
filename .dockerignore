@@ -1,0 +1,43 @@
+# .dockerignore
+# 排除不需要进入构建上下文的文件，加快 docker build 速度
+
+# Git 相关
+.git
+.gitignore
+.github
+
+# 测试文件
+test/
+*_test.go
+
+# 本地构建产物
+*.exe
+*.out
+go-redis-server
+
+# 持久化数据文件（不应打包进镜像）
+*.aof
+*.rdb
+dump.rdb
+appendonly.aof
+
+# 日志文件
+*.log
+
+# Docker 自身文件（避免递归）
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# 文档（不影响编译）
+docs/
+*.md

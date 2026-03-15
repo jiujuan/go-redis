@@ -1,0 +1,154 @@
+version: "3.9"
+
+# ============================================================
+# go-redis Docker Compose 部署配置
+#
+# 用法：
+#   单节点：  docker compose up go-redis
+#   开启AOF： docker compose up go-redis-aof
+#   三节点集群：docker compose --profile cluster up
+# ============================================================
+
+x-go-redis-base: &go-redis-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      VERSION: "0.4.0"
+      BUILD_TIME: "${BUILD_TIME:-unknown}"
+      GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+  image: go-redis:0.4.0
+  restart: unless-stopped
+  # 资源限制：防止单节点占用过多资源
+  deploy:
+    resources:
+      limits:
+        cpus: "2.0"
+        memory: 512M
+      reservations:
+        cpus: "0.5"
+        memory: 64M
+
+services:
+
+  # ----------------------------------------------------------
+  # 单节点：最简模式，无持久化
+  # docker compose up go-redis
+  # ----------------------------------------------------------
+  go-redis:
+    <<: *go-redis-base
+    container_name: go-redis
+    ports:
+      - "6379:6379"
+    environment:
+      GO_REDIS_HOST: "0.0.0.0"
+      GO_REDIS_PORT: "6379"
+      GO_REDIS_SHARDS: "256"
+      GO_REDIS_MAX_CONN: "10000"
+    volumes:
+      - go-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo PING | nc -w1 localhost 6379 | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # ----------------------------------------------------------
+  # 单节点 + AOF 持久化
+  # docker compose up go-redis-aof
+  # ----------------------------------------------------------
+  go-redis-aof:
+    <<: *go-redis-base
+    container_name: go-redis-aof
+    ports:
+      - "6380:6379"
+    environment:
+      GO_REDIS_HOST: "0.0.0.0"
+      GO_REDIS_PORT: "6379"
+      GO_REDIS_AOF: "yes"
+      GO_REDIS_AOF_FILE: "/data/appendonly.aof"
+      GO_REDIS_AOF_SYNC: "everysec"
+      GO_REDIS_RDB: "yes"
+      GO_REDIS_RDB_FILE: "/data/dump.rdb"
+    volumes:
+      - go-redis-aof-data:/data
+    profiles:
+      - aof
+
+  # ----------------------------------------------------------
+  # 三节点集群（v0.3/v0.4 分布式模式）
+  # docker compose --profile cluster up
+  #
+  # 节点间通过 Docker 内部网络互通，客户端连接任意节点即可
+  # ----------------------------------------------------------
+  go-redis-node1:
+    <<: *go-redis-base
+    container_name: go-redis-node1
+    ports:
+      - "7001:6379"
+    environment:
+      GO_REDIS_HOST: "0.0.0.0"
+      GO_REDIS_PORT: "6379"
+      GO_REDIS_AOF: "yes"
+      GO_REDIS_AOF_FILE: "/data/appendonly.aof"
+    volumes:
+      - go-redis-node1-data:/data
+    networks:
+      - go-redis-cluster
+    profiles:
+      - cluster
+
+  go-redis-node2:
+    <<: *go-redis-base
+    container_name: go-redis-node2
+    ports:
+      - "7002:6379"
+    environment:
+      GO_REDIS_HOST: "0.0.0.0"
+      GO_REDIS_PORT: "6379"
+      GO_REDIS_AOF: "yes"
+      GO_REDIS_AOF_FILE: "/data/appendonly.aof"
+    volumes:
+      - go-redis-node2-data:/data
+    networks:
+      - go-redis-cluster
+    profiles:
+      - cluster
+
+  go-redis-node3:
+    <<: *go-redis-base
+    container_name: go-redis-node3
+    ports:
+      - "7003:6379"
+    environment:
+      GO_REDIS_HOST: "0.0.0.0"
+      GO_REDIS_PORT: "6379"
+      GO_REDIS_AOF: "yes"
+      GO_REDIS_AOF_FILE: "/data/appendonly.aof"
+    volumes:
+      - go-redis-node3-data:/data
+    networks:
+      - go-redis-cluster
+    profiles:
+      - cluster
+
+# ----------------------------------------------------------
+# 持久化数据卷（数据保存在 Docker managed volume，重启不丢失）
+# ----------------------------------------------------------
+volumes:
+  go-redis-data:
+    name: go-redis-data
+  go-redis-aof-data:
+    name: go-redis-aof-data
+  go-redis-node1-data:
+    name: go-redis-node1-data
+  go-redis-node2-data:
+    name: go-redis-node2-data
+  go-redis-node3-data:
+    name: go-redis-node3-data
+
+networks:
+  go-redis-cluster:
+    name: go-redis-cluster
+    driver: bridge
