@@ -52,7 +52,7 @@ go-redis/
 
 ## 快速开始
 
-### v0.1 嵌入式使用
+### 嵌入式使用
 
 ```go
 db := engine.NewGoRedis()
@@ -65,14 +65,14 @@ db.SAdd("tags", "go", "redis")
 db.ZAdd("ranking", 100, "alice")
 ```
 
-### v0.2 启动服务端
+### 启动服务端
 
 ```bash
 go run cmd/server/main.go --port 6379 --aof yes
 redis-cli -p 6379 SET name tom
 ```
 
-### v0.3 集群客户端
+### 集群客户端
 
 ```go
 nodes := []string{"127.0.0.1:6379", "127.0.0.1:6380", "127.0.0.1:6381"}
