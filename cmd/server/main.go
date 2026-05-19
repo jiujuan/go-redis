@@ -1,8 +1,8 @@
-// go-redis server 入口（v0.2+）
+// go-redis server entrypoint.
 //
-// 用法：
+// Usage:
 //
-//	go run cmd/server/main.go [--port 6379] [--aof yes] [--rdb yes]
+//	go run cmd/server/main.go [--port 6379] [--aof=true] [--rdb=true]
 package main
 
 import (
@@ -17,31 +17,43 @@ import (
 	"github.com/jiujuan/go-redis/internal/server"
 )
 
+var parseFlags = config.ParseFlags
+
+var newGoRedis = engine.NewGoRedis
+
+var newServer = server.NewServer
+
+var startServerWithContext = func(srv *server.Server, ctx context.Context) error {
+	return srv.StartWithContext(ctx)
+}
+
+func runWithContext(ctx context.Context, cfg *config.Config) error {
+	db := newGoRedis(engine.WithShardCount(cfg.ShardCount))
+	srv := newServer(cfg, db)
+	return startServerWithContext(srv, ctx)
+}
+
 func main() {
-	cfg := config.ParseFlags()
+	cfg := parseFlags()
 
 	log.Printf("[go-redis] starting server v0.2")
 	log.Printf("[go-redis] config: addr=%s shards=%d aof=%v rdb=%v",
 		cfg.Addr(), cfg.ShardCount, cfg.AOFEnabled, cfg.RDBEnabled)
 
-	// 初始化存储引擎
-	db := engine.NewGoRedis(engine.WithShardCount(cfg.ShardCount))
-
-	// 启动 TCP 服务端
-	srv := server.NewServer(cfg, db)
-
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// 信号处理
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
+
 	go func() {
 		sig := <-sigCh
 		log.Printf("[go-redis] received signal: %v", sig)
 		cancel()
 	}()
 
-	if err := srv.StartWithContext(ctx); err != nil {
+	if err := runWithContext(ctx, cfg); err != nil {
 		log.Printf("[go-redis] server error: %v", err)
 		os.Exit(1)
 	}
